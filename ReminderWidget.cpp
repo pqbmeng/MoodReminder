@@ -15,39 +15,56 @@
 namespace
 {
     // 窗口抖动
-    void shakeWindow(QWidget* w)
+    QPropertyAnimation* shakeWindow(QWidget* w, const bool start = true)
     {
         QPropertyAnimation*pAnimation = new QPropertyAnimation(w, "pos");
         pAnimation->setDuration(500);
         pAnimation->setLoopCount(3);
         const auto wGeom = w->geometry();
+        constexpr auto offset = 32;
         pAnimation->setKeyValueAt(0, QPoint(wGeom.x() - 3, wGeom.y() - 3));
-        pAnimation->setKeyValueAt(0.1, QPoint(wGeom.x() + 6, wGeom.y() + 6));
-        pAnimation->setKeyValueAt(0.2, QPoint(wGeom.x() - 6, wGeom.y() + 6));
-        pAnimation->setKeyValueAt(0.3, QPoint(wGeom.x() + 6, wGeom.y() - 6));
-        pAnimation->setKeyValueAt(0.4, QPoint(wGeom.x() - 6, wGeom.y() - 6));
-        pAnimation->setKeyValueAt(0.5, QPoint(wGeom.x() + 6, wGeom.y() + 6));
-        pAnimation->setKeyValueAt(0.6, QPoint(wGeom.x() - 6, wGeom.y() + 6));
-        pAnimation->setKeyValueAt(0.7, QPoint(wGeom.x() + 6, wGeom.y() - 6));
-        pAnimation->setKeyValueAt(0.8, QPoint(wGeom.x() - 6, wGeom.y() - 6));
-        pAnimation->setKeyValueAt(0.9, QPoint(wGeom.x() + 6, wGeom.y() + 6));
+        pAnimation->setKeyValueAt(0.1, QPoint(wGeom.x() + offset, wGeom.y() + offset));
+        pAnimation->setKeyValueAt(0.2, QPoint(wGeom.x() - offset, wGeom.y() + offset));
+        pAnimation->setKeyValueAt(0.3, QPoint(wGeom.x() + offset, wGeom.y() - offset));
+        pAnimation->setKeyValueAt(0.4, QPoint(wGeom.x() - offset, wGeom.y() - offset));
+        pAnimation->setKeyValueAt(0.5, QPoint(wGeom.x() + offset, wGeom.y() + offset));
+        pAnimation->setKeyValueAt(0.6, QPoint(wGeom.x() - offset, wGeom.y() + offset));
+        pAnimation->setKeyValueAt(0.7, QPoint(wGeom.x() + offset, wGeom.y() - offset));
+        pAnimation->setKeyValueAt(0.8, QPoint(wGeom.x() - offset, wGeom.y() - offset));
+        pAnimation->setKeyValueAt(0.9, QPoint(wGeom.x() + offset, wGeom.y() + offset));
         pAnimation->setKeyValueAt(1, QPoint(wGeom.x() - 3, wGeom.y() - 3));
-        pAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        if (start)
+        {
+            pAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        }
+        return pAnimation;
     }
 
     // 窗口渐渐透明
-    void opacityWindow(QWidget* w)
+    QPropertyAnimation* opacityWindow(QWidget* w, const bool start = true)
     {
         QPropertyAnimation *pAnimation = new QPropertyAnimation(w, "windowOpacity");
-        pAnimation->setDuration(3000);
+        pAnimation->setDuration(2000);
         pAnimation->setKeyValueAt(0, 1);
-        pAnimation->setKeyValueAt(0.5, 0);
-        pAnimation->setKeyValueAt(1, 1);
-        pAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        pAnimation->setKeyValueAt(0.1, 0.7);
+        pAnimation->setKeyValueAt(0.2, 0.5);
+        pAnimation->setKeyValueAt(0.3, 0.7);
+        pAnimation->setKeyValueAt(0.4, 1);
+        pAnimation->setKeyValueAt(0.5, 0.7);
+        pAnimation->setKeyValueAt(0.6, 0.5);
+        pAnimation->setKeyValueAt(0.7, 0.7);
+        pAnimation->setKeyValueAt(0.8, 1);
+        pAnimation->setKeyValueAt(0.9, 0.5);
+        pAnimation->setKeyValueAt(1, 0);
+        if (start)
+        {
+            pAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        }
+        return pAnimation;
     }
 
     // 窗口下坠
-    void dropWindow(QWidget* w)
+    QPropertyAnimation* dropWindow(QWidget* w, const bool start = true)
     {
         QPropertyAnimation *pAnimation = new QPropertyAnimation(w, "geometry");
         QDesktopWidget *pDesktopWidget = QApplication::desktop();
@@ -57,8 +74,15 @@ namespace
         pAnimation->setStartValue(QRect(x, 0, w->width(), w->height()));
         pAnimation->setEndValue(QRect(x, y, w->width(), w->height()));
         pAnimation->setEasingCurve(QEasingCurve::OutElastic);
-        pAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        if (start)
+        {
+            pAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        }
+        return pAnimation;
     }
+
+    using namespace std::literals::chrono_literals;
+    const auto intervalTime = 8min;
 }
 
 ReminderWidget::ReminderWidget()
@@ -96,7 +120,7 @@ void ReminderWidget::paintEvent(QPaintEvent *event)
 void ReminderWidget::hideEvent(QHideEvent *event)
 {
     using namespace std::literals::chrono_literals;
-    QTimer::singleShot(std::chrono::milliseconds(15min).count(), this, &QWidget::show);
+    QTimer::singleShot(std::chrono::milliseconds(::intervalTime).count(), this, &QWidget::show);
 
     QWidget::hideEvent(event);
 }
@@ -111,9 +135,13 @@ void ReminderWidget::showEvent(QShowEvent *event)
     using namespace std::literals::chrono_literals;
     QTimer::singleShot(std::chrono::milliseconds(3s).count(), this, &QWidget::hide);
 
-    //::shakeWindow(this);
-    ::opacityWindow(this);
-    ::dropWindow(this);
+    const auto pAnimation = ::dropWindow(this, false);
+    connect(pAnimation, &QAbstractAnimation::finished, [this]
+    {
+        ::shakeWindow(this);
+        ::opacityWindow(this);
+    });
+    pAnimation->start(QAbstractAnimation::DeleteWhenStopped);
 
     QWidget::showEvent(event);
 }
