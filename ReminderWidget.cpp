@@ -64,7 +64,7 @@ namespace
 ReminderWidget::ReminderWidget()
 {
     setFixedSize(150, 150);
-    setWindowFlags(Qt:: FramelessWindowHint);
+    setWindowFlags(Qt:: FramelessWindowHint | Qt::WindowStaysOnTopHint);
     setAttribute(Qt::WA_TranslucentBackground);
 
     initSystemTray();
